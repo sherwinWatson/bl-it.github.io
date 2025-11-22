@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Bali Adventure Itinerary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Earth Tones -->
+    <!-- Application Structure Plan: A single-page dashboard design. A top summary section with key stats and a donut chart shows the trip's focus. The main content is an interactive accordion of daily cards, allowing users to expand/collapse each day's detailed schedule. A sticky navigation bar allows quick jumps between days. This structure is chosen for clarity and to prevent overwhelming the user with a long, static list, making the 9-day plan easily digestible. -->
+    <!-- Visualization & Content Choices: 1. Trip Focus (Donut Chart): Goal=Inform/Summarize. Shows days per region. Interaction=Tooltip on hover. Justification=Quickly visualizes the trip's balance. Library=Chart.js. 2. Daily Schedule (Interactive Accordion/Timeline): Goal=Organize. Shows timed activities with icons. Interaction=Expand/collapse days. Justification=Provides detailed info without cluttering the UI. Method=HTML/CSS/JS. 3. Geographical Flow (Diagram): Goal=Inform/Organize. Shows travel path. Interaction=Click to highlight days. Justification=Gives a high-level geographical context. Method=HTML/CSS/JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FBF9F6;
+            color: #4A4A4A;
+        }
+        .day-card.expanded .day-content {
+            max-height: 2000px;
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+            opacity: 1;
+        }
+        .day-card .day-content {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.7s ease-in-out, padding 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+        .day-card.expanded .chevron {
+            transform: rotate(180deg);
+        }
+        .chevron {
+            transition: transform 0.3s ease-in-out;
+        }
+        .nav-link.active {
+            background-color: #A88B77;
+            color: #FFFFFF;
+        }
+        .highlight-day {
+            animation: pulse-bg 2s infinite;
+        }
+        @keyframes pulse-bg {
+            0% { background-color: #F5EFE6; }
+            50% { background-color: #EADFD1; }
+            100% { background-color: #F5EFE6; }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-xl md:text-2xl font-bold text-[#A88B77]">Bali Adventure</h1>
+                <div class="hidden md:flex items-center space-x-1" id="desktop-nav"></div>
+            </div>
+             <div class="md:hidden overflow-x-auto whitespace-nowrap py-2">
+                <div class="flex items-center space-x-2" id="mobile-nav"></div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        <section id="overview" class="mb-12">
+            <h2 class="text-3xl font-bold text-center mb-2 text-[#6D5D51]">Your Unforgettable Bali Itinerary</h2>
+            <p class="text-center text-lg text-gray-600 mb-8">Dec 27, 2025 - Jan 4, 2026</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-center">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <p class="text-4xl font-bold text-[#A88B77]">9</p>
+                    <p class="text-gray-500">Total Days</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <p class="text-4xl font-bold text-[#A88B77]">4</p>
+                    <p class="text-gray-500">Main Locations</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <p class="text-4xl font-bold text-[#A88B77]">2</p>
+                    <p class="text-gray-500">Travelers</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-bold text-center mb-4 text-[#6D5D51]">Trip Focus by Area</h3>
+                     <div class="chart-container relative w-full max-w-sm mx-auto h-64 md:h-72">
+                        <canvas id="tripFocusChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-bold text-center mb-4 text-[#6D5D51]">Geographical Flow</h3>
+                    <p class="text-center text-sm text-gray-500 mb-6">This shows your journey across the island. Click a location to highlight the relevant days below.</p>
+                    <div class="flex items-center justify-center space-x-1 md:space-x-2 text-xs sm:text-sm flex-wrap">
+                        <span class="location-node bg-green-100 text-green-800 p-2 rounded-lg cursor-pointer" data-days="1">Airport</span>
+                        <span class="text-gray-400 font-bold">&rarr;</span>
+                        <span class="location-node bg-teal-100 text-teal-800 p-2 rounded-lg cursor-pointer" data-days="1,2,3">Ubud</span>
+                        <span class="text-gray-400 font-bold">&rarr;</span>
+                        <span class="location-node bg-purple-100 text-purple-800 p-2 rounded-lg cursor-pointer" data-days="3,4,5">Kintamani</span>
+                        <span class="text-gray-400 font-bold">&rarr;</span>
+                        <span class="location-node bg-orange-100 text-orange-800 p-2 rounded-lg cursor-pointer" data-days="5,6,7,8,9">Kuta & South</span>
+                        <span class="text-gray-400 font-bold">&rarr;</span>
+                        <span class="location-node bg-green-100 text-green-800 p-2 rounded-lg cursor-pointer" data-days="9">Airport</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="itinerary-details">
+            <h2 class="text-3xl font-bold text-center mb-8 text-[#6D5D51]">Daily Breakdown</h2>
+            <div id="itinerary-container" class="space-y-4">
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center p-6 mt-8 text-gray-500">
+        <p>Have an amazing trip!</p>
+    </footer>
+
+    <script>
+        const itineraryData = [
+            {
+                day: 1,
+                date: "Friday, Dec 27",
+                title: "Arrival & Immersion in Ubud",
+                theme: "teal",
+                events: [
+                    { time: "10:00", icon: "🏍️", description: "Depart from Alicante Boulevard." },
+                    { time: "11:00", icon: "🍽️", description: "Arrive and eat at Airport Lounge" },
+                    { time: "16:20", icon: "✈️", description: "Flight from Soekarno Hatta International Airport (CGK)." },
+                    { time: "19:20", icon: "✈️", description: "Arrive at Ngurah Rai International Airport (DPS)." },
+                    { time: "20:30", icon: "🏍️", description: "Airport transfer to Ubud (60-90 mins)." },
+                    { time: "22:00", icon: "🏨", description: "Check into your hotel/villa in the heart of Ubud." },
+                ]
+            },
+            {
+                day: 2,
+                date: "Saturday, Dec 28",
+                title: "Ubud's Rice Paddies & Culture by Scooter",
+                theme: "teal",
+                events: [
+                    { time: "08:00", icon: "🛵", description: "Scooter rental." },
+                    { time: "19:00", icon: "🌾", description: "Explore the iconic Tegalalang Rice Terraces." },
+                    { time: "11:00", icon: "🥗", description: "Lunch with a view.", foodiePick: "<strong>Ubud Shanti</strong> for fresh food right in the middle of the rice paddies." },
+                    { time: "12:30", icon: "🐘", description: "Visit the Goa Gajah." },
+                    { time: "16:00", icon: "🚶", description: "Take a scenic walk along the Campuhan Ridge Walk at golden hour." },
+                    { time: "20:00", icon: "🍷", description: "Special dinner experience.", foodiePick: "<strong>Ketut's Warung</strong> for a calm and local vibe dinner." }
+                ]
+            },
+            {
+                day: 3,
+                date: "Sunday, Dec 29",
+                title: "Sacred Waters & Journey to Kintamani",
+                theme: "purple",
+                events: [
+                    { time: "09:30", icon: "🏍️", description: "Check out from Ubud and drive north." },
+                    { time: "11:00", icon: "🍜", description: "Lunch on the way to Kintamani." },
+                    { time: "12:30", icon: "🏛️", description: "Visit Tirta Empul Temple for a holy water purification experience." },
+                    { time: "15:00", icon: "🏨", description: "Arrive and check into your Kintamani hotel with volcano views." },
+                    { time: "19:00", icon: "🍽️", description: "Dinner in the cool mountain air.", foodiePick: "<strong>Amora Kintamani Restaurant</strong> for a buffet with breathtaking panoramic views." }
+                ]
+            },
+            {
+                day: 4,
+                date: "Monday, Dec 30",
+                title: "Volcano Sunrise & Natural Hot Springs",
+                theme: "purple",
+                events: [
+                    { time: "03:30", icon: "🌋", description: "Start your optional Mount Batur sunrise trek." },
+                    { time: "06:00", icon: "🌄", description: "Witness a magical sunrise from the summit with breakfast." },
+                    { time: "09:30", icon: "♨️", description: "Soothe your muscles at Toya Devasya Natural Hot Springs." },
+                    { time: "11:00", icon: "☕", description: "Well-deserved lunch with incredible views.", foodiePick: "<strong>Montana Del Cafe</strong> or <strong>AKASA Specialty Coffee</strong> for modern cafe vibes." },
+                    { time: "Afternoon", icon: "😌", description: "Relax or visit a local Luwak Coffee plantation." },
+                    { time: "Dinner", icon: "🍽️", description: "Enjoy a relaxed dinner in Kintamani." }
+                ]
+            },
+            {
+                day: 5,
+                date: "Tuesday, Dec 31",
+                title: "Journey South for New Year's Eve in Kuta",
+                theme: "orange",
+                events: [
+                    { time: "10:00", icon: "🏍️", description: "Check out from Kintamani and drive south to Kuta." },
+                    { time: "13:00", icon: "🍜", description: "Stop for lunch en route." },
+                    { time: "15:00", icon: "🏨", description: "Arrive in Kuta and check into your hotel." },
+                    { time: "18:00", icon: "🎉", description: "Special New Year's Eve dinner.", foodiePick: "Book at <strong>Kuta Social Club</strong> (rooftop) or <strong>Rosso Vivo</strong> (beachside)." },
+                    { time: "22:30+", icon: "🎆", description: "Join the massive beach party on Kuta Beach for midnight fireworks." }
+                ]
+            },
+            {
+                day: 6,
+                date: "Wednesday, Jan 1",
+                title: "New Year's Relaxation & Visit Sherson",
+                theme: "orange",
+                events: [
+                    { time: "Morning", icon: "😴", description: "Slow start to the New Year. Relax by the pool or on the beach." },
+                    { time: "Afternoon", icon: "🏍️", description: "Drive to Sherson's place." },
+                    { time: "Evening", icon: "🍹", description: "Enjoy sunset dinner at Kuta." }
+                ]
+            },
+            {
+                day: 7,
+                date: "Thursday, Jan 2",
+                title: "Southern Beaches & Coastal Views",
+                theme: "orange",
+                events: [
+                    { time: "07:00", icon: "🏖️", description: "Explore beautiful southern beaches like Padang Padang, Melasti Beach or Uluwatu Beach." },
+                    { time: "11:00", icon: "🍽️", description: "Lunch at a clifftop warung with a view." },
+                    { time: "15:00", icon: "☀️", description: "Relax, swim, and soak up the sun." },
+                    { time: "18:00", icon: "🍽️", description: "Dinner near Uluwatu.", foodiePick: "Choose cliff view cafes <strong>Salin Cafe Uluwatu</strong> or <strong>Pande Hill Restaurant</strong>." }
+                ]
+            },
+            {
+                day: 8,
+                date: "Friday, Jan 3",
+                title: "Uluwatu's Magic",
+                theme: "orange",
+                events: [
+                    { time: "Morning", icon: "🛀", description: "Relax by the pool or on the beach." },
+                    { time: "Afternoon", icon: "🏍️", description: "Driver takes you to the stunning cliffside Uluwatu Temple." },
+                    { time: "17:00", icon: "🍞", description: "Prepare snacks." },
+                    { time: "18:00", icon: "🔥", description: "Watch the famous Kecak Fire Dance at sunset." },
+                    { time: "20:00", icon: "🦐", description: "Classic seafood dinner on the sand at Jimbaran Bay.", foodiePick: "Choose your fresh catch at <strong>Lia Cafe</strong> or <strong>Menega Cafe</strong>." }
+                ]
+            },
+            {
+                day: 8,
+                date: "Friday, Jan 3",
+                title: "Your Choice of Adventure",
+                theme: "orange",
+                events: [
+                    { time: "All Day", icon: "🗺️", description: "Choose your adventure: <br><strong>Thrill:</strong> Waterbom Bali waterpark. <br><strong>Relax:</strong> Spa massage & shopping. <br><strong>Culture:</strong> Balinese cooking class." },
+                    { time: "20:00", icon: "🥂", description: "Farewell dinner.", foodiePick: "<strong>Poppies Restaurant</strong> (hidden oasis) or <strong>Warung Babi Guling Pak Malen</strong>." }
+                ]
+            },
+            {
+                day: 9,
+                date: "Saturday, Jan 4",
+                title: "Last Tastes of Bali & Departure",
+                theme: "green",
+                events: [
+                    { time: "Morning", icon: "🛍️", description: "Final Balinese breakfast and last-minute souvenir shopping at Krisna Oleh-Oleh." },
+                    { time: "09:30", icon: "🏍️", description: "Return rental motorcycle." },
+                    { time: "11:00", icon: "🍜", description: "Have one last delicious Balinese meal." },
+                    { time: "14:30", icon: "🚙", description: "Head to the airport." },
+                    { time: "17:20", icon: "✈️", description: "Depart from Bali." }
+                ]
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const itineraryContainer = document.getElementById('itinerary-container');
+            const desktopNav = document.getElementById('desktop-nav');
+            const mobileNav = document.getElementById('mobile-nav');
+
+            itineraryData.forEach((day, index) => {
+                const dayCard = document.createElement('div');
+                dayCard.id = `day-${day.day}`;
+                dayCard.className = `day-card bg-white rounded-xl shadow-md overflow-hidden border-l-4 border-${day.theme}-300`;
+                
+                let eventsHtml = day.events.map(event => `
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 text-center">
+                            <div class="bg-gray-100 rounded-full h-10 w-10 flex items-center justify-center text-xl">${event.icon}</div>
+                            <p class="text-xs text-gray-500 mt-1">${event.time}</p>
+                        </div>
+                        <div class="pt-1">
+                            <p class="font-medium text-gray-800">${event.description}</p>
+                            ${event.foodiePick ? `<div class="mt-2 text-sm text-amber-800 bg-amber-50 p-3 rounded-lg border border-amber-200"><strong>Foodie Pick:</strong> ${event.foodiePick}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('<div class="border-l-2 border-dashed border-gray-200 h-8 ml-5"></div>');
+
+                dayCard.innerHTML = `
+                    <div class="day-header p-4 md:p-6 cursor-pointer flex justify-between items-center bg-gray-50">
+                        <div>
+                            <p class="text-sm font-medium text-${day.theme}-600">Day ${day.day} &bull; ${day.date}</p>
+                            <h3 class="text-xl md:text-2xl font-bold text-gray-800">${day.title}</h3>
+                        </div>
+                        <span class="chevron text-2xl text-gray-400">&#9660;</span>
+                    </div>
+                    <div class="day-content px-4 md:px-6 space-y-4">
+                        ${eventsHtml}
+                    </div>
+                `;
+                itineraryContainer.appendChild(dayCard);
+
+                const navLinkDesktop = `<a href="#day-${day.day}" class="nav-link px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-200" data-day="${day.day}">Day ${day.day}</a>`;
+                const navLinkMobile = `<a href="#day-${day.day}" class="nav-link px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-full shadow-sm" data-day="${day.day}">Day ${day.day}</a>`;
+                desktopNav.innerHTML += navLinkDesktop;
+                mobileNav.innerHTML += navLinkMobile;
+            });
+            
+            const dayCards = document.querySelectorAll('.day-card');
+            dayCards.forEach((card, index) => {
+                if (index === 0) {
+                    card.classList.add('expanded');
+                }
+                card.querySelector('.day-header').addEventListener('click', () => {
+                    card.classList.toggle('expanded');
+                });
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const daySections = document.querySelectorAll('.day-card');
+
+            function updateActiveLink() {
+                let current = '';
+                daySections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                const currentDay = current.split('-')[1];
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.day === currentDay) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            window.addEventListener('scroll', updateActiveLink);
+            updateActiveLink();
+
+            const locationNodes = document.querySelectorAll('.location-node');
+            locationNodes.forEach(node => {
+                node.addEventListener('click', () => {
+                    const daysToHighlight = node.dataset.days.split(',');
+                    
+                    dayCards.forEach(card => {
+                        card.classList.remove('highlight-day');
+                        const cardDay = card.id.split('-')[1];
+                        if (daysToHighlight.includes(cardDay)) {
+                            card.classList.add('highlight-day');
+                            card.classList.add('expanded');
+                        }
+                    });
+
+                    setTimeout(() => {
+                        dayCards.forEach(card => card.classList.remove('highlight-day'));
+                    }, 2000);
+                });
+            });
+
+            const ctx = document.getElementById('tripFocusChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ubud & Central', 'Kintamani & North', 'Kuta & South'],
+                    datasets: [{
+                        label: 'Days per Area',
+                        data: [2, 2, 5],
+                        backgroundColor: [
+                            '#99D8C8',
+                            '#D8BFD8',
+                            '#FFDAB9'
+                        ],
+                        borderColor: [
+                            '#FFFFFF'
+                        ],
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + ' days';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
